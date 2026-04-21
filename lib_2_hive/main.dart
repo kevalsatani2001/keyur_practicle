@@ -511,3 +511,134 @@ class DetailScreen extends StatelessWidget {
   }
 }
  */
+
+/////////////////////////// FIREBASE CRUD ////////////////////////
+/*
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(); // Firebase initialize karvu jaruri che
+  runApp(MaterialApp(home: FirebaseCrudApp()));
+}
+
+class FirebaseCrudApp extends StatefulWidget {
+  @override
+  _FirebaseCrudAppState createState() => _FirebaseCrudAppState();
+}
+
+class _FirebaseCrudAppState extends State<FirebaseCrudApp> {
+  // Firestore collection reference
+  final CollectionReference _users = FirebaseFirestore.instance.collection('users');
+
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _jobController = TextEditingController();
+
+  // CREATE or UPDATE logic
+  Future<void> _createOrUpdate([DocumentSnapshot? documentSnapshot]) async {
+    String action = 'create';
+    if (documentSnapshot != null) {
+      action = 'update';
+      _nameController.text = documentSnapshot['name'];
+      _jobController.text = documentSnapshot['job'];
+    }
+
+    await showModalBottomSheet(
+        isScrollControlled: true,
+        context: context,
+        builder: (BuildContext ctx) {
+          return Padding(
+            padding: EdgeInsets.only(
+                top: 20, left: 20, right: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: _nameController, decoration: InputDecoration(labelText: 'Name')),
+                TextField(controller: _jobController, decoration: InputDecoration(labelText: 'Job')),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  child: Text(action == 'create' ? 'Create' : 'Update'),
+                  onPressed: () async {
+                    final String name = _nameController.text;
+                    final String job = _jobController.text;
+                    if (name.isNotEmpty && job.isNotEmpty) {
+                      if (action == 'create') {
+                        // 1. CREATE: Navu document add karva
+                        await _users.add({"name": name, "job": job});
+                      }
+                      if (action == 'update') {
+                        // 2. UPDATE: Existing document update karva
+                        await _users.doc(documentSnapshot!.id).update({"name": name, "job": job});
+                      }
+                      _nameController.text = '';
+                      _jobController.text = '';
+                      Navigator.of(context).pop();
+                    }
+                  },
+                )
+              ],
+            ),
+          );
+        });
+  }
+
+  // 3. DELETE: Document remove karva
+  Future<void> _deleteUser(String userId) async {
+    await _users.doc(userId).delete();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('User deleted successfully!')));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Firebase CRUD')),
+      // 4. READ: Real-time data mate StreamBuilder
+      body: StreamBuilder(
+        stream: _users.snapshots(),
+        builder: (context, AsyncSnapshot<QuerySnapshot> streamSnapshot) {
+          if (streamSnapshot.hasData) {
+            return ListView.builder(
+              itemCount: streamSnapshot.data!.docs.length,
+              itemBuilder: (context, index) {
+                final DocumentSnapshot documentSnapshot = streamSnapshot.data!.docs[index];
+                return Card(
+                  margin: EdgeInsets.all(10),
+                  child: ListTile(
+                    title: Text(documentSnapshot['name']),
+                    subtitle: Text(documentSnapshot['job']),
+                    onTap: () {
+                      // DETAIL: Click karta detail page par java mate (pela mapela concept mujab)
+                      _showDetail(documentSnapshot);
+                    },
+                    trailing: SizedBox(
+                      width: 100,
+                      children: [
+                        IconButton(icon: Icon(Icons.edit), onPressed: () => _createOrUpdate(documentSnapshot)),
+                        IconButton(icon: Icon(Icons.delete), onPressed: () => _deleteUser(documentSnapshot.id)),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          }
+          return Center(child: CircularProgressIndicator());
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _createOrUpdate(),
+        child: Icon(Icons.add),
+      ),
+    );
+  }
+
+  void _showDetail(DocumentSnapshot doc) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => Scaffold(
+      appBar: AppBar(title: Text("User Detail")),
+      body: Center(child: Text("Name: ${doc['name']}\nJob: ${doc['job']}", style: TextStyle(fontSize: 20))),
+    )));
+  }
+}
+ */
