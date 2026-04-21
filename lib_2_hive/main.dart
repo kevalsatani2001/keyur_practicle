@@ -311,3 +311,203 @@ class Post {
   }
 }
  */
+
+/*
+detail================
+
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+import 'package:flutter/material.dart';
+
+void main() => runApp(MaterialApp(home: CrudApp()));
+
+class CrudApp extends StatefulWidget {
+  @override
+  _CrudAppState createState() => _CrudAppState();
+}
+
+class _CrudAppState extends State<CrudApp> {
+  final ApiService apiService = ApiService();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Flutter CRUD API")),
+      body: FutureBuilder(
+        future: apiService.getPosts(),
+        builder: (context, AsyncSnapshot<List<Post>> snapshot) {
+          if (snapshot.hasData) {
+            return ListView.builder(
+              itemCount: 10, // Testing mate fakt 10 items
+              // ... ListView.builder ni andar badlav ...
+
+              itemBuilder: (context, index) {
+                Post post = snapshot.data![index];
+                return Card(
+                  margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  child: ListTile(
+                    title: Text(post.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    subtitle: Text("Click to view details"),
+                    leading: CircleAvatar(child: Text("${post.id}")),
+
+                    // ITEM CLICK LOGIC
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DetailScreen(post: post),
+                        ),
+                      );
+                    },
+
+                    trailing: IconButton(
+                      icon: Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => apiService.deletePost(post.id!),
+                    ),
+                  ),
+                );
+              },
+            );
+          }
+          return Center(child: CircularProgressIndicator());
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        child: Icon(Icons.add),
+        onPressed: () => _showForm(),
+      ),
+    );
+  }
+
+  // Form Dialog for Create & Update
+  void _showForm({Post? post}) {
+    TextEditingController titleController = TextEditingController(text: post?.title ?? "");
+    TextEditingController bodyController = TextEditingController(text: post?.body ?? "");
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(post == null ? "Add Post" : "Update Post"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: titleController, decoration: InputDecoration(labelText: "Title")),
+            TextField(controller: bodyController, decoration: InputDecoration(labelText: "Body")),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              Post newPost = Post(title: titleController.text, body: bodyController.text);
+              if (post == null) {
+                await apiService.createPost(newPost);
+              } else {
+                await apiService.updatePost(post.id!, newPost);
+              }
+              Navigator.pop(context);
+              setState(() {}); // Refresh UI
+            },
+            child: Text("Save"),
+          )
+        ],
+      ),
+    );
+  }
+}
+
+class ApiService {
+  final String url = "https://jsonplaceholder.typicode.com/posts";
+
+  // READ
+  Future<List<Post>> getPosts() async {
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      List<dynamic> body = jsonDecode(response.body);
+      return body.map((item) => Post.fromJson(item)).toList();
+    } else {
+      throw "Post fetch nathi thai rahya.";
+    }
+  }
+
+  // CREATE
+  Future<void> createPost(Post post) async {
+    await http.post(
+      Uri.parse(url),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(post.toJson()),
+    );
+  }
+
+  // UPDATE
+  Future<void> updatePost(int id, Post post) async {
+    await http.put(
+      Uri.parse('$url/$id'),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(post.toJson()),
+    );
+  }
+
+  // DELETE
+  Future<void> deletePost(int id) async {
+    await http.delete(Uri.parse('$url/$id'));
+  }
+}
+
+class Post {
+  final int? id;
+  final String title;
+  final String body;
+
+  Post({this.id, required this.title, required this.body});
+
+  // JSON mathi Object banavva mate
+  factory Post.fromJson(Map<String, dynamic> json) {
+    return Post(
+      id: json['id'],
+      title: json['title'],
+      body: json['body'],
+    );
+  }
+
+  // Object mathi JSON banavva mate
+  Map<String, dynamic> toJson() {
+    return {'title': title, 'body': body};
+  }
+}
+
+
+class DetailScreen extends StatelessWidget {
+  final Post post; // Item data recieve karva mate
+
+  DetailScreen({required this.post});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Post Detail")),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Title:",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blue),
+            ),
+            Text(post.title, style: TextStyle(fontSize: 16)),
+            SizedBox(height: 20),
+            Text(
+              "Description:",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blue),
+            ),
+            Text(post.body, style: TextStyle(fontSize: 16)),
+            SizedBox(height: 20),
+            Text("Post ID: ${post.id}", style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+ */
