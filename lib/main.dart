@@ -199,3 +199,320 @@ class _MyAppState extends State<MyApp> {
     );
   }
 }
+
+/*
+import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+void main() {
+  runApp(
+    MaterialApp(home: PaginationHome(), debugShowCheckedModeBanner: false),
+  );
+}
+
+class PaginationHome extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Flutter Pagination Demo")),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (c) => LocalPagination()),
+              ),
+              child: Text("Local List Pagination"),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (c) => ApiPagination()),
+              ),
+              child: Text("API Pagination"),
+            ),
+
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (c) => ClientSidePagination()),
+              ),
+              child: Text("client Pagination"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// --- ૧. LOCAL LIST PAGINATION ---
+class LocalPagination extends StatefulWidget {
+  @override
+  _LocalPaginationState createState() => _LocalPaginationState();
+}
+
+class _LocalPaginationState extends State<LocalPagination> {
+  final List<String> _allData = List.generate(
+    1000,
+    (i) => "Local Item ${i + 1}",
+  );
+  List<String> _displayData = [];
+  int _currentLimit = 15;
+  bool _loadingMore = false;
+  final ScrollController _controller = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _displayData = _allData.getRange(0, _currentLimit).toList();
+    _controller.addListener(_scrollListener);
+  }
+
+  void _scrollListener() {
+    if (_controller.position.pixels == _controller.position.maxScrollExtent) {
+      _loadMore();
+    }
+  }
+
+  void _loadMore() async {
+    if (_displayData.length >= _allData.length) return;
+
+    setState(() => _loadingMore = true);
+
+    // થોડો લોડિંગ ટાઈમ આપવા માટે (Real feel)
+    await Future.delayed(Duration(seconds: 1));
+
+    int nextLimit = _currentLimit + 15;
+    if (nextLimit > _allData.length) nextLimit = _allData.length;
+
+    setState(() {
+      _displayData.addAll(_allData.getRange(_currentLimit, nextLimit).toList());
+      _currentLimit = nextLimit;
+      _loadingMore = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Local Pagination")),
+      body: ListView.builder(
+        controller: _controller,
+        itemCount: _displayData.length + 1,
+        itemBuilder: (context, index) {
+          if (index < _displayData.length) {
+            return ListTile(
+              leading: CircleAvatar(child: Text("${index + 1}")),
+              title: Text(_displayData[index]),
+            );
+          } else {
+            return _loadingMore
+                ? Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : SizedBox();
+          }
+        },
+      ),
+    );
+  }
+}
+
+// --- ૨. API PAGINATION ---
+class ApiPagination extends StatefulWidget {
+  @override
+  _ApiPaginationState createState() => _ApiPaginationState();
+}
+
+class _ApiPaginationState extends State<ApiPagination> {
+  List _posts = [];
+  int _page = 1;
+  final int _limit = 10;
+  bool _hasNextPage = true;
+  bool _isFirstLoadRunning = false;
+  bool _isLoadMoreRunning = false;
+  final ScrollController _controller = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _firstLoad();
+    _controller.addListener(_loadMore);
+  }
+
+  void _firstLoad() async {
+    setState(() => _isFirstLoadRunning = true);
+    try {
+      final res = await http.get(
+        Uri.parse(
+          "https://jsonplaceholder.typicode.com/posts?_page=$_page&_limit=$_limit",
+        ),
+      );
+      setState(() {
+        _posts = json.decode(res.body);
+      });
+    } catch (err) {
+      print("Error fetching data");
+    }
+    setState(() => _isFirstLoadRunning = false);
+  }
+
+  void _loadMore() async {
+    if (_hasNextPage &&
+        !_isFirstLoadRunning &&
+        !_isLoadMoreRunning &&
+        _controller.position.extentAfter < 300) {
+      setState(() => _isLoadMoreRunning = true);
+      _page += 1;
+      try {
+        final res = await http.get(
+          Uri.parse(
+            "https://jsonplaceholder.typicode.com/posts?_page=$_page&_limit=$_limit",
+          ),
+        );
+        final List fetchedPosts = json.decode(res.body);
+        if (fetchedPosts.isNotEmpty) {
+          setState(() {
+            _posts.addAll(fetchedPosts);
+          });
+        } else {
+          setState(() => _hasNextPage = false);
+        }
+      } catch (err) {
+        print("Something went wrong!");
+      }
+      setState(() => _isLoadMoreRunning = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("API Pagination")),
+      body: _isFirstLoadRunning
+          ? Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    controller: _controller,
+                    itemCount: _posts.length,
+                    itemBuilder: (context, index) => Card(
+                      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                      child: ListTile(
+                        title: Text(_posts[index]['title']),
+                        subtitle: Text("ID: ${_posts[index]['id']}"),
+                      ),
+                    ),
+                  ),
+                ),
+                if (_isLoadMoreRunning)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10, bottom: 40),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+              ],
+            ),
+    );
+  }
+}
+
+class ClientSidePagination extends StatefulWidget {
+  @override
+  _ClientSidePaginationState createState() => _ClientSidePaginationState();
+}
+
+class _ClientSidePaginationState extends State<ClientSidePagination> {
+  List allApiData = []; // API માંથી આવેલો બધો ડેટા
+  List displayedItems = []; // સ્ક્રીન પર દેખાતો ડેટા
+  int currentMax = 15; // અત્યારે કેટલી આઈટમ બતાવવી છે
+  bool isLoading = true;
+  ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    fetchAllData(); // API માંથી એકવાર બધો ડેટા ખેંચી લેવો
+
+    _scrollController.addListener(() {
+      // જો યુઝર છેલ્લે પહોંચે તો વધુ 15 આઈટમ લોડ કરવી
+      if (_scrollController.position.pixels ==
+          _scrollController.position.maxScrollExtent) {
+        _loadMoreLocalData();
+      }
+    });
+  }
+
+  // ૧. API માંથી બધો ડેટા એકસાથે લાવવો
+  Future fetchAllData() async {
+    final url =
+        'https://jsonplaceholder.typicode.com/posts'; // આમાં પેજ પેરામીટર નથી
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        List data = json.decode(response.body);
+        setState(() {
+          allApiData = data;
+          // શરૂઆતનો ડેટા (પહેલી 15 આઈટમ)
+          displayedItems = allApiData.take(currentMax).toList();
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Error: $e");
+    }
+  }
+
+  // ૨. લોકલ લિસ્ટમાંથી વધુ ડેટા ડિસ્પ્લે લિસ્ટમાં ઉમેરવો
+  void _loadMoreLocalData() {
+    if (currentMax < allApiData.length) {
+      setState(() {
+        // હવે પછીની 15 આઈટમ ઉમેરો
+        int nextMax = currentMax + 15;
+        if (nextMax > allApiData.length) nextMax = allApiData.length;
+
+        displayedItems.addAll(
+          allApiData.getRange(currentMax, nextMax).toList(),
+        );
+        currentMax = nextMax;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("No Page Param Pagination")),
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              controller: _scrollController,
+              itemCount: (currentMax < allApiData.length)
+                  ? displayedItems.length + 1
+                  : displayedItems.length,
+              itemBuilder: (context, index) {
+                if (index < displayedItems.length) {
+                  return ListTile(
+                    leading: CircleAvatar(child: Text("${index + 1}")),
+                    title: Text(displayedItems[index]['title']),
+                  );
+                } else {
+                  return Padding(
+                    padding: EdgeInsets.all(15),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+              },
+            ),
+    );
+  }
+}
+
+ */
